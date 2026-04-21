@@ -7,7 +7,7 @@ st.set_page_config(page_title="Lapsen Näkösimulaattori", layout="wide")
 # --- KIELIVALINTA ---
 kieli = st.sidebar.radio("Valitse kieli / Välj språk / Select Language", ["Suomi", "Svenska", "English"])
 
-# --- LOKALISOINTI (Kaikki kolme kieltä) ---
+# --- LOKALISOINTI (Kaikki tekstit ja data) ---
 t = {
     "Suomi": {
         "title": "👁️ Lapsen Näön Kehitys & Tutkimus",
@@ -20,7 +20,7 @@ t = {
         "lazy": "Laiska silmä (Amblyopia)",
         "refractive": "Taittovirhe:",
         "refractive_opts": ["Ei taittovirhettä", "Myopia (Likitaitteisuus)", "Hyperopia (Kaukotaitteisuus)", "Astigmatismi (Hajanaitteisuus)"],
-        "contrast": "Heikko kontrastinherkkyys",
+        "contrast": "Matala kontrastinherkkyys",
         "info_title": "ℹ️ Tietoa valituista häiriöistä",
         "warning_title": "🚩 Hälytysmerkit – Milloin lääkäriin?",
         "disclaimer": "HUOM: Tämä sovellus on tarkoitettu vain opetuskäyttöön. Ota aina yhteys ammattilaiseen, jos olet huolissasi.",
@@ -35,8 +35,14 @@ t = {
             '3 v.': {'info': "Näkö on kehittynyt. Tässä iässä voidaan tehdä viralliset Lea-testit."}
         },
         "red_flags": ["Valkoinen pupilli", "Jatkuva karsastus 6kk jälkeen", "Silmien väreily", "Ei katsekontaktia 3kk iässä"],
-        "exp_squint": "Karsastuksessa aivot saavat kaksi eri kuvaa, mikä voi häiritä syvyysnäköä.",
-        "exp_lazy": "Laiskassa silmässä aivot suosivat toista silmää, jolloin toisen näkö jää sumeaksi."
+        "exp_texts": {
+            "squint": "Karsastuksessa aivot saavat kaksi eri kuvaa, mikä voi häiritä syvyysnäön kehitystä.",
+            "lazy": "Laiskassa silmässä (amblyopia) aivot alkavat suosia toista silmää, ja toisen näkö jää sumeaksi.",
+            "myopia": "Likitaitteinen näkee lähelle hyvin, mutta kauas huonosti.",
+            "hyperopia": "Kaukotaitteinen joutuu ponnistelemaan nähdäkseen tarkasti, mikä voi väsyttää silmiä.",
+            "astig": "Hajanaitteisuus vääristää kuvaa kaikilla etäisyyksillä.",
+            "contrast_txt": "Matala kontrasti vaikeuttaa hahmojen erottamista taustasta."
+        }
     },
     "Svenska": {
         "title": "👁️ Barnets synutveckling & Simulator",
@@ -49,7 +55,7 @@ t = {
         "lazy": "Amblyopi (Synnedsättning)",
         "refractive": "Refraktionsfel:",
         "refractive_opts": ["Inget fel", "Myopi (Närsynthet)", "Hyperopi (Översynthet)", "Astigmatism"],
-        "contrast": "Nedsatt kontrastkänslighet",
+        "contrast": "Låg kontrastkänslighet",
         "info_title": "ℹ️ Information om valda störningar",
         "warning_title": "🚩 Varningssignaler – När ska man söka vård?",
         "disclaimer": "OBS: Denna app är endast för utbildningsändamål. Kontakta alltid en professionell vid oro.",
@@ -64,8 +70,14 @@ t = {
             '3 år': {'info': "Synen är utvecklad. Nu kan man göra officiella Lea-tester."},
         },
         "red_flags": ["Vit pupill", "Konstant skelning efter 6 mån", "Dallrande ögonrörelser", "Ingen ögonkontakt vid 3 mån"],
-        "exp_squint": "Vid skelning får hjärnan två olika bilder, vilket kan störa djupseendet.",
-        "exp_lazy": "Vid amblyopi favoriserar hjärnan det ena ögat, vilket gör det andra ögat suddigt."
+        "exp_texts": {
+            "squint": "Vid skelning får hjärnan två olika bilder, vilket kan störa djupseendet.",
+            "lazy": "Vid amblyopi favoriserar hjärnan det ena ögat, vilket gör det andra ögat suddigt.",
+            "myopia": "En närsynt person ser bra på nära håll men dåligt på långt håll.",
+            "hyperopia": "En översynt person måste anstränga sig för att se tydligt, vilket kan trötta ut ögonen.",
+            "astig": "Astigmatism förvränger bilden på alla avstånd.",
+            "contrast_txt": "Låg kontrast gör det svårare att skilja föremål från bakgrunden."
+        }
     },
     "English": {
         "title": "👁️ Infant Vision Development & Simulator",
@@ -93,8 +105,14 @@ t = {
             '3 y.': {'info': "Vision is developed. Reliable Lea tests can be done now."}
         },
         "red_flags": ["White pupil", "Constant squint after 6 months", "Eye shaking", "No eye contact by 3 months"],
-        "exp_squint": "In strabismus, the brain receives two different images, which can hinder depth perception.",
-        "exp_lazy": "In a lazy eye (amblyopia), the brain favors one eye, leaving the other's vision blurry."
+        "exp_texts": {
+            "squint": "In strabismus, the brain receives two different images, which can hinder depth perception.",
+            "lazy": "In a lazy eye (amblyopia), the brain favors one eye, leaving the other's vision blurry.",
+            "myopia": "A nearsighted person sees close objects well but far objects poorly.",
+            "hyperopia": "A farsighted person must strain to see clearly, which can cause eye fatigue.",
+            "astig": "Astigmatism distorts vision at all distances.",
+            "contrast_txt": "Low contrast sensitivity makes it hard to distinguish objects from their background."
+        }
     }
 }
 
@@ -115,7 +133,6 @@ if valittu_näkymä == txt["view_opts"][3]:
     if up: img = Image.open(up)
     else: st.info("Lataa kuva / Ladda upp bild / Upload image"); st.stop()
 else:
-    # Käytetään samoja tiedostoja kielestä riippumatta
     map_idx = txt["view_opts"].index(valittu_näkymä)
     f_list = ["aiti.jpg", "leikkihuone.jpg", "lea.jpg"]
     img = load_img(f_list[map_idx])
@@ -123,7 +140,6 @@ else:
 
 # --- INPUTIT ---
 ika_valittu = st.sidebar.select_slider(txt["age"], options=txt["ages"], value=txt["ages"][0])
-# Haetaan index jotta saadaan oikeat arvot perusasetuksista (Suomi-avaimilla)
 avain_index = txt["ages"].index(ika_valittu)
 suomi_avain = t["Suomi"]["ages"][avain_index]
 base_settings = {
@@ -149,9 +165,12 @@ proc = proc.filter(ImageFilter.GaussianBlur(radius=current_vals['blur']))
 proc = ImageEnhance.Color(proc).enhance(current_vals['sat'])
 proc = ImageEnhance.Contrast(proc).enhance(0.2 if is_contrast else current_vals['contrast'])
 
-if "Myopia" in refr or "Närsynthet" in refr: proc = proc.filter(ImageFilter.GaussianBlur(radius=4))
-elif "Hyperopia" in refr or "Översynthet" in refr: proc = proc.filter(ImageFilter.GaussianBlur(radius=3))
-elif "Astigmatism" in refr:
+# Taittovirhe-logiikka
+if "Myopia" in refr or "Närsynthet" in refr or "Nearsighted" in refr: 
+    proc = proc.filter(ImageFilter.GaussianBlur(radius=4))
+elif "Hyperopia" in refr or "Översynthet" in refr or "Farsighted" in refr: 
+    proc = proc.filter(ImageFilter.GaussianBlur(radius=3))
+elif "Astigmatism" in refr or "Hajanaitteisuus" in refr:
     ast_img = proc.filter(ImageFilter.GaussianBlur(radius=2))
     proc = Image.blend(proc, ast_img.rotate(0, translate=(0, 8)), alpha=0.5)
 
@@ -176,8 +195,16 @@ st.divider()
 inf, warn = st.columns(2)
 with inf:
     st.subheader(txt["info_title"])
-    if is_squint: st.write(f"**{txt['squint']}**: {txt['exp_squint']}")
-    if is_lazy: st.write(f"**{txt['lazy']}**: {txt['exp_lazy']}")
+    if is_squint: st.write(f"**{txt['squint']}**: {txt['exp_texts']['squint']}")
+    if is_lazy: st.write(f"**{txt['lazy']}**: {txt['exp_texts']['lazy']}")
+    
+    # Taittovirheen selitys
+    if refr != txt["refractive_opts"][0]:
+        key = "myopia" if ("Myopia" in refr or "Närsynthet" in refr or "Nearsighted" in refr) else \
+              "hyperopia" if ("Hyperopia" in refr or "Översynthet" in refr or "Farsighted" in refr) else "astig"
+        st.write(f"**{refr}**: {txt['exp_texts'][key]}")
+        
+    if is_contrast: st.write(f"**{txt['contrast']}**: {txt['exp_texts']['contrast_txt']}")
 
 with warn:
     st.subheader(txt["warning_title"])
