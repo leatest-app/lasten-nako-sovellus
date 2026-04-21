@@ -7,7 +7,7 @@ st.set_page_config(page_title="Lapsen Näkösimulaattori", layout="wide")
 # --- KIELIVALINTA ---
 kieli = st.sidebar.radio("Valitse kieli / Välj språk / Select Language", ["Suomi", "Svenska", "English"])
 
-# --- LOKALISOINTI (Kaikki tekstit ja data) ---
+# --- LOKALISOINTI ---
 t = {
     "Suomi": {
         "title": "👁️ Lapsen Näön Kehitys & Tutkimus",
@@ -34,7 +34,17 @@ t = {
             '2 v.': {'info': "Näkökyky on lähellä aikuista. Lapsi osaa etsiä kuvista pieniä kohteita."},
             '3 v.': {'info': "Näkö on kehittynyt. Tässä iässä voidaan tehdä viralliset Lea-testit."}
         },
-        "red_flags": ["Valkoinen pupilli", "Jatkuva karsastus 6kk jälkeen", "Silmien väreily", "Ei katsekontaktia 3kk iässä"],
+        "red_flags": [
+            "Ei ota katsekontaktia",
+            "Siristelee",
+            "Kallistaa päätään",
+            "Tuo asiat hyvin lähelle",
+            "Väsyy katselutehtävissä nopeasti",
+            "Välttelee visuaalisia tehtäviä",
+            "Näön käyttö poikkeaa tavallisesta",
+            "Valkoinen pupilli (salamavalokuvassa)",
+            "Silmien jatkuva väreily (nystagmus)"
+        ],
         "exp_texts": {
             "squint": "Karsastuksessa aivot saavat kaksi eri kuvaa, mikä voi häiritä syvyysnäön kehitystä.",
             "lazy": "Laiskassa silmässä (amblyopia) aivot alkavat suosia toista silmää, ja toisen näkö jää sumeaksi.",
@@ -69,7 +79,17 @@ t = {
             '2 år': {'info': "Synen är nära en vuxens nivå. Kan hitta små föremål i böcker."},
             '3 år': {'info': "Synen är utvecklad. Nu kan man göra officiella Lea-tester."},
         },
-        "red_flags": ["Vit pupill", "Konstant skelning efter 6 mån", "Dallrande ögonrörelser", "Ingen ögonkontakt vid 3 mån"],
+        "red_flags": [
+            "Tar inte ögonkontakt",
+            "Kniper ihop ögonen",
+            "Lutar huvudet",
+            "För saker mycket nära",
+            "Blir snabbt trött vid synuppgifter",
+            "Undviker visuella uppgifter",
+            "Synbeteendet avviker från det vanliga",
+            "Vit pupill (vid fotografering med blixt)",
+            "Dallrande ögonrörelser (nystagmus)"
+        ],
         "exp_texts": {
             "squint": "Vid skelning får hjärnan två olika bilder, vilket kan störa djupseendet.",
             "lazy": "Vid amblyopi favoriserar hjärnan det ena ögat, vilket gör det andra ögat suddigt.",
@@ -104,7 +124,17 @@ t = {
             '2 y.': {'info': "Vision is close to an adult's. Can spot small items in books."},
             '3 y.': {'info': "Vision is developed. Reliable Lea tests can be done now."}
         },
-        "red_flags": ["White pupil", "Constant squint after 6 months", "Eye shaking", "No eye contact by 3 months"],
+        "red_flags": [
+            "Does not make eye contact",
+            "Squints or screws up eyes",
+            "Tilts head",
+            "Brings things very close",
+            "Gets tired quickly during visual tasks",
+            "Avoids visual tasks",
+            "Vision use differs from normal",
+            "White pupil (in flash photos)",
+            "Eye shaking (nystagmus)"
+        ],
         "exp_texts": {
             "squint": "In strabismus, the brain receives two different images, which can hinder depth perception.",
             "lazy": "In a lazy eye (amblyopia), the brain favors one eye, leaving the other's vision blurry.",
@@ -165,12 +195,12 @@ proc = proc.filter(ImageFilter.GaussianBlur(radius=current_vals['blur']))
 proc = ImageEnhance.Color(proc).enhance(current_vals['sat'])
 proc = ImageEnhance.Contrast(proc).enhance(0.2 if is_contrast else current_vals['contrast'])
 
-# Taittovirhe-logiikka
-if "Myopia" in refr or "Närsynthet" in refr or "Nearsighted" in refr: 
+# Taittovirhe-tunnistus kielen mukaan
+if any(kw in refr for kw in ["Myopia", "Närsynthet", "Likitaitteisuus", "Nearsighted"]):
     proc = proc.filter(ImageFilter.GaussianBlur(radius=4))
-elif "Hyperopia" in refr or "Översynthet" in refr or "Farsighted" in refr: 
+elif any(kw in refr for kw in ["Hyperopia", "Översynthet", "Kaukotaitteisuus", "Farsighted"]):
     proc = proc.filter(ImageFilter.GaussianBlur(radius=3))
-elif "Astigmatism" in refr or "Hajanaitteisuus" in refr:
+elif any(kw in refr for kw in ["Astigmatism", "Hajanaitteisuus"]):
     ast_img = proc.filter(ImageFilter.GaussianBlur(radius=2))
     proc = Image.blend(proc, ast_img.rotate(0, translate=(0, 8)), alpha=0.5)
 
@@ -191,23 +221,35 @@ with c2:
     st.subheader("Normal Vision")
     st.image(img, use_container_width=True)
 
+# --- INFORMAATIO-OSIO ---
 st.divider()
 inf, warn = st.columns(2)
 with inf:
     st.subheader(txt["info_title"])
-    if is_squint: st.write(f"**{txt['squint']}**: {txt['exp_texts']['squint']}")
-    if is_lazy: st.write(f"**{txt['lazy']}**: {txt['exp_texts']['lazy']}")
+    active_info = False
+    if is_squint: 
+        st.write(f"**{txt['squint']}**: {txt['exp_texts']['squint']}")
+        active_info = True
+    if is_lazy: 
+        st.write(f"**{txt['lazy']}**: {txt['exp_texts']['lazy']}")
+        active_info = True
     
-    # Taittovirheen selitys
     if refr != txt["refractive_opts"][0]:
-        key = "myopia" if ("Myopia" in refr or "Närsynthet" in refr or "Nearsighted" in refr) else \
-              "hyperopia" if ("Hyperopia" in refr or "Översynthet" in refr or "Farsighted" in refr) else "astig"
+        key = "myopia" if any(kw in refr for kw in ["Myopia", "Närsynthet", "Likitaitteisuus", "Nearsighted"]) else \
+              "hyperopia" if any(kw in refr for kw in ["Hyperopia", "Översynthet", "Kaukotaitteisuus", "Farsighted"]) else "astig"
         st.write(f"**{refr}**: {txt['exp_texts'][key]}")
+        active_info = True
         
-    if is_contrast: st.write(f"**{txt['contrast']}**: {txt['exp_texts']['contrast_txt']}")
+    if is_contrast: 
+        st.write(f"**{txt['contrast']}**: {txt['exp_texts']['contrast_txt']}")
+        active_info = True
+    
+    if not active_info:
+        st.write("Valitse häiriöitä sivupalkista nähdäksesi lisätietoa.")
 
 with warn:
     st.subheader(txt["warning_title"])
-    for f in txt["red_flags"]: st.write(f"- {f}")
+    for f in txt["red_flags"]:
+        st.write(f"- {f}")
 
 st.caption(txt["disclaimer"])
