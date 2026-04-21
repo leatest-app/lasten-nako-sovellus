@@ -1,7 +1,6 @@
 import streamlit as st
 from PIL import Image, ImageFilter, ImageEnhance
-import requests
-from io import BytesIO
+import os
 
 st.set_page_config(page_title="Lapsen Näkösimulaattori", layout="wide")
 
@@ -12,36 +11,32 @@ st.sidebar.header("Säädöt")
 st.sidebar.subheader("Valitse näkymä")
 kuvavalinta = st.sidebar.selectbox(
     "Valitse kuva simulaatioon:",
-    ["Lea-testitaulu", "Leikkihuone", "Kasvot", "Lataa oma kuva"]
+    ["Lea-testitaulu", "Lataa oma kuva"]
 )
 
-# Oletuskuvat netistä (varmat julkiset osoitteet)
-IMAGE_URLS = {
-    "Lea-testitaulu": "https://raw.githubusercontent.com/streamlit/demo-face-detection/master/event_images/party.jpg", # Vaihdetaan parempiin linkkeihin tarvittaessa
-    "Leikkihuone": "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=1000",
-    "Kasvot": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1000"
-}
+# Funktio kuvan lataamiseen paikallisesti
+def load_local_image(filename):
+    if os.path.exists(filename):
+        return Image.open(filename)
+    else:
+        return None
 
-# Funktio kuvan lataamiseen
-def load_image(url):
-    response = requests.get(url)
-    return Image.open(BytesIO(response.content))
+# Ladataan kuva
+img = None
 
-# Ladataan kuva valinnan mukaan
 if kuvavalinta == "Lataa oma kuva":
     uploaded_file = st.file_uploader("Lataa JPG tai PNG kuva", type=["jpg", "png", "jpeg"])
     if uploaded_file:
         img = Image.open(uploaded_file)
     else:
-        st.info("Lataa kuva yläpuolelta tai valitse valmis näkymä sivupalkista.")
+        st.info("Lataa kuva yläpuolelta kokeillaksesi simulaattoria omalla kuvallasi.")
         st.stop()
 else:
-    # Huom: Jos haluat käyttää omaa Lea-taulua, voit ladata sen GitHubiisi ja käyttää sen URL:ää tässä
-    if kuvavalinta == "Lea-testitaulu":
-        # Tähän kannattaa ladata se sinun aiemmin lataamasi Lea-kuva jos mahdollista
-        img = load_image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Lea_symbols.svg/1024px-Lea_symbols.svg.png")
-    else:
-        img = load_image(IMAGE_URLS[kuvavalinta])
+    # Yritetään ladata GitHubiin lataamasi lea.jpg
+    img = load_local_image("lea.jpg")
+    if img is None:
+        st.error("Tiedostoa 'lea.jpg' ei löytynyt GitHubista. Lataa se sinne, niin simulaattori toimii!")
+        st.stop()
 
 # --- IKÄ JA SIMULAATIO ---
 ika = st.sidebar.select_slider(
@@ -55,7 +50,7 @@ st.sidebar.subheader("Simuloi häiriöitä")
 karsastus = st.sidebar.checkbox("Karsastus (Kaksoiskuva)")
 kontrasti_check = st.sidebar.checkbox("Heikko kontrastinherkkyys")
 
-# --- DATA (Leatest-pohjainen) ---
+# --- DATA ---
 settings = {
     'Vastasyntynyt': {'blur': 25, 'sat': 0.0, 'contrast': 0.2, 'info': "Näkee parhaiten n. 20-30 cm päähän. Suosii voimakkaita kontrasteja ja mustavalkoisia kuvioita."},
     '1-2 kk': {'blur': 15, 'sat': 0.3, 'contrast': 0.4, 'info': "Alkaa erottaa punaisen ja vihreän. Katse alkaa seurata hitaasti liikkuvaa kohdetta."},
@@ -67,8 +62,6 @@ settings = {
 }
 
 current = settings[ika]
-
-# --- KÄSITTELY ---
 processed_img = img.copy()
 
 # 1. Sumennus
@@ -80,14 +73,14 @@ color_enhancer = ImageEnhance.Color(processed_img)
 processed_img = color_enhancer.enhance(current['sat'])
 
 # 3. Kontrasti
-contrast_val = 0.3 if kontrasti_check else current['contrast']
+contrast_val = 0.2 if kontrasti_check else current['contrast']
 contrast_enhancer = ImageEnhance.Contrast(processed_img)
 processed_img = contrast_enhancer.enhance(contrast_val)
 
 # 4. Karsastus
 if karsastus:
-    img_array = processed_img.copy()
-    processed_img = Image.blend(processed_img, img_array.rotate(0, translate=(20, 10)), alpha=0.5)
+    img_copy = processed_img.copy()
+    processed_img = Image.blend(processed_img, img_copy.rotate(0, translate=(20, 10)), alpha=0.5)
 
 # --- NÄYTTÄMINEN ---
 col1, col2 = st.columns(2)
@@ -101,4 +94,4 @@ with col2:
     st.image(img, use_container_width=True)
 
 st.divider()
-st.caption("HUOM: Tämä on vain simulaatio suuntaa-antavaan havainnollistamiseen. Jos olet huolissasi lapsen näöstä, ota yhteys neuvolaan tai silmälääkäriin.")
+st.caption("HUOM: Tämä on vain simulaatio. Jos olet huolissasi lapsen näöstä, ota yhteys ammattilaiseen.")
