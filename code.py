@@ -2,6 +2,7 @@ import streamlit as st
 from PIL import Image, ImageFilter, ImageEnhance
 import os
 
+# --- SIVUN ASETUKSET ---
 st.set_page_config(page_title="Lapsen Näkösimulaattori", layout="wide")
 
 # --- KIELIVALINTA ---
@@ -14,6 +15,7 @@ t = {
         "settings": "Säädöt",
         "view": "Mitä lapsi katsoo?",
         "view_opts": ["Äiti", "Vesivärit (Leikkihuone)", "Lea-testitaulu", "Lataa oma kuva"],
+        "slider_hint": "Liikuta palloa janalla muuttaaksesi ikää 👇",
         "age": "Lapsen ikä",
         "disturb": "Simuloi häiriöitä",
         "squint": "Karsastus (Kaksoiskuva)",
@@ -57,6 +59,7 @@ t = {
         "settings": "Inställningar",
         "view": "Vad tittar barnet på?",
         "view_opts": ["Mamma", "Vattenfärger (Lekrum)", "Lea-tavla", "Ladda upp bild"],
+        "slider_hint": "Flytta pricken på linjen för att ändra ålder 👇",
         "age": "Barnets ålder",
         "disturb": "Simulera störningar",
         "squint": "Skelning (Dubbelseende)",
@@ -100,6 +103,7 @@ t = {
         "settings": "Settings",
         "view": "What is the child looking at?",
         "view_opts": ["Mother", "Watercolors (Playroom)", "Lea Chart", "Upload image"],
+        "slider_hint": "Move the dot on the line to change the age 👇",
         "age": "Child's age",
         "disturb": "Simulate Disorders",
         "squint": "Strabismus (Double vision)",
@@ -152,20 +156,26 @@ def load_img(fname):
     if os.path.exists(fname): return Image.open(fname)
     return None
 
-if valittu_näkymä == txt["view_opts"][3]: 
+if valittu_näkymä == txt["view_opts"][3]: # Lataa oma kuva
     up = st.file_uploader("Upload", type=["jpg","png","jpeg"])
     if up: img = Image.open(up)
     else: st.info(txt["upload_msg"]); st.stop()
 else:
+    # Käytetään samoja tiedostoja kielestä riippumatta indeksin avulla
     map_idx = txt["view_opts"].index(valittu_näkymä)
     f_list = ["aiti.jpg", "leikkihuone.jpg", "lea.jpg"]
     img = load_img(f_list[map_idx])
-    if img is None: st.error("Image files missing."); st.stop()
+    if img is None: st.error("Image files missing from GitHub (aiti.jpg, leikkihuone.jpg, lea.jpg)."); st.stop()
 
 # --- INPUTIT ---
+st.sidebar.markdown(f"*{txt['slider_hint']}*")
 ika_valittu = st.sidebar.select_slider(txt["age"], options=txt["ages"], value=txt["ages"][0])
+
+# Haetaan vastaava suomenkielinen avain datan hakuun, jotta logiikka pysyy samana
 avain_index = txt["ages"].index(ika_valittu)
 suomi_avain = t["Suomi"]["ages"][avain_index]
+
+# Perusarvot ikävaiheittain
 base_settings = {
     'Vastasyntynyt': {'blur': 25, 'sat': 0.0, 'contrast': 0.2},
     '1-2 kk': {'blur': 15, 'sat': 0.3, 'contrast': 0.4},
@@ -183,12 +193,17 @@ is_lazy = st.sidebar.checkbox(txt["lazy"])
 refr = st.sidebar.selectbox(txt["refractive"], txt["refractive_opts"])
 is_contrast = st.sidebar.checkbox(txt["contrast"])
 
-# --- PROSESSOINTI ---
+# --- KUVAN KÄSITTELY ---
 proc = img.copy()
-proc = proc.filter(ImageFilter.GaussianBlur(radius=current_vals['blur']))
-proc = ImageEnhance.Color(proc).enhance(current_vals['sat'])
-proc = ImageEnhance.Contrast(proc).enhance(0.2 if is_contrast else current_vals['contrast'])
 
+# 1. Ikäkohtaiset säädöt
+if current_vals['blur'] > 0:
+    proc = proc.filter(ImageFilter.GaussianBlur(radius=current_vals['blur']))
+proc = ImageEnhance.Color(proc).enhance(current_vals['sat'])
+c_mult = 0.2 if is_contrast else current_vals['contrast']
+proc = ImageEnhance.Contrast(proc).enhance(c_mult)
+
+# 2. Taittovirheet
 if any(kw in refr for kw in ["Myopia", "Närsynthet", "Nearsighted"]): 
     proc = proc.filter(ImageFilter.GaussianBlur(radius=4))
 elif any(kw in refr for kw in ["Hyperopia", "Översynthet", "Farsighted"]): 
@@ -197,6 +212,7 @@ elif any(kw in refr for kw in ["Astigmatism", "Hajanaitteisuus"]):
     ast_img = proc.filter(ImageFilter.GaussianBlur(radius=2))
     proc = Image.blend(proc, ast_img.rotate(0, translate=(0, 8)), alpha=0.5)
 
+# 3. Karsastus & Laiska silmä
 if is_squint or is_lazy:
     r_eye = proc.copy()
     if is_lazy: r_eye = r_eye.filter(ImageFilter.GaussianBlur(radius=6))
@@ -214,7 +230,7 @@ with c2:
     st.subheader(txt["normal_vision"])
     st.image(img, use_container_width=True)
 
-# --- INFORMAATIO-OSIO ---
+# --- ALALOHKO: TIEDOT JA HÄLYTYSMERKIT ---
 st.divider()
 inf, warn = st.columns(2)
 with inf:
@@ -227,6 +243,7 @@ with inf:
         st.write(f"**{txt['lazy']}**: {txt['exp_texts']['lazy']}")
         active_info = True
     if refr != txt["refractive_opts"][0]:
+        # Tunnistetaan kategoria selitystä varten
         k = "myopia" if any(kw in refr for kw in ["Myopia", "Närsynthet", "Nearsighted"]) else \
             "hyperopia" if any(kw in refr for kw in ["Hyperopia", "Översynthet", "Farsighted"]) else "astig"
         st.write(f"**{refr}**: {txt['exp_texts'][k]}")
