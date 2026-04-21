@@ -7,7 +7,7 @@ st.set_page_config(page_title="Lapsen Näkösimulaattori", layout="wide")
 # --- KIELIVALINTA ---
 kieli = st.sidebar.radio("Valitse kieli / Välj språk / Select Language", ["Suomi", "Svenska", "English"])
 
-# --- LOKALISOINTI ---
+# --- LOKALISOINTI (Kaikki tekstit ja data) ---
 t = {
     "Suomi": {
         "title": "👁️ Lapsen Näön Kehitys & Tutkimus",
@@ -21,8 +21,11 @@ t = {
         "refractive": "Taittovirhe:",
         "refractive_opts": ["Ei taittovirhettä", "Myopia (Likitaitteisuus)", "Hyperopia (Kaukotaitteisuus)", "Astigmatismi (Hajanaitteisuus)"],
         "contrast": "Matala kontrastinherkkyys",
+        "normal_vision": "Normaali näkö",
         "info_title": "ℹ️ Tietoa valituista häiriöistä",
+        "no_disturb_info": "Valitse häiriöitä sivupalkista nähdäksesi lisätietoa.",
         "warning_title": "🚩 Hälytysmerkit – Milloin lääkäriin?",
+        "upload_msg": "Lataa kuva nähdäksesi simulaation.",
         "disclaimer": "HUOM: Tämä sovellus on tarkoitettu vain opetuskäyttöön. Ota aina yhteys ammattilaiseen, jos olet huolissasi.",
         "ages": ['Vastasyntynyt', '1-2 kk', '3-4 kk', '6 kk', '12 kk', '2 v.', '3 v.'],
         "age_data": {
@@ -35,14 +38,9 @@ t = {
             '3 v.': {'info': "Näkö on kehittynyt. Tässä iässä voidaan tehdä viralliset Lea-testit."}
         },
         "red_flags": [
-            "Ei ota katsekontaktia",
-            "Siristelee",
-            "Kallistaa päätään",
-            "Tuo asiat hyvin lähelle",
-            "Väsyy katselutehtävissä nopeasti",
-            "Välttelee visuaalisia tehtäviä",
-            "Näön käyttö poikkeaa tavallisesta",
-            "Valkoinen pupilli (salamavalokuvassa)",
+            "Ei ota katsekontaktia", "Siristelee", "Kallistaa päätään", "Tuo asiat hyvin lähelle",
+            "Väsyy katselutehtävissä nopeasti", "Välttelee visuaalisia tehtäviä",
+            "Näön käyttö poikkeaa tavallisesta", "Valkoinen pupilli (salamavalokuvassa)",
             "Silmien jatkuva väreily (nystagmus)"
         ],
         "exp_texts": {
@@ -66,8 +64,11 @@ t = {
         "refractive": "Refraktionsfel:",
         "refractive_opts": ["Inget fel", "Myopi (Närsynthet)", "Hyperopi (Översynthet)", "Astigmatism"],
         "contrast": "Låg kontrastkänslighet",
+        "normal_vision": "Normal syn",
         "info_title": "ℹ️ Information om valda störningar",
+        "no_disturb_info": "Välj störningar i sidofältet för att se mer information.",
         "warning_title": "🚩 Varningssignaler – När ska man söka vård?",
+        "upload_msg": "Ladda upp en bild för att se simuleringen.",
         "disclaimer": "OBS: Denna app är endast för utbildningsändamål. Kontakta alltid en professionell vid oro.",
         "ages": ['Nyfödd', '1-2 mån', '3-4 mån', '6 mån', '12 mån', '2 år', '3 år'],
         "age_data": {
@@ -80,14 +81,9 @@ t = {
             '3 år': {'info': "Synen är utvecklad. Nu kan man göra officiella Lea-tester."},
         },
         "red_flags": [
-            "Tar inte ögonkontakt",
-            "Kniper ihop ögonen",
-            "Lutar huvudet",
-            "För saker mycket nära",
-            "Blir snabbt trött vid synuppgifter",
-            "Undviker visuella uppgifter",
-            "Synbeteendet avviker från det vanliga",
-            "Vit pupill (vid fotografering med blixt)",
+            "Tar inte ögonkontakt", "Kniper ihop ögonen", "Lutar huvudet", "För saker mycket nära",
+            "Blir snabbt trött vid synuppgifter", "Undviker visuella uppgifter",
+            "Synbeteendet avviker från det vanliga", "Vit pupill (vid blixtfoto)",
             "Dallrande ögonrörelser (nystagmus)"
         ],
         "exp_texts": {
@@ -111,8 +107,11 @@ t = {
         "refractive": "Refractive Error:",
         "refractive_opts": ["No error", "Myopia (Nearsighted)", "Hyperopia (Farsighted)", "Astigmatism"],
         "contrast": "Low Contrast Sensitivity",
+        "normal_vision": "Normal vision",
         "info_title": "ℹ️ Information on Selected Disorders",
+        "no_disturb_info": "Select disorders from the sidebar to see more information.",
         "warning_title": "🚩 Red Flags – When to see a doctor",
+        "upload_msg": "Upload an image to see the simulation.",
         "disclaimer": "NOTE: This app is for educational purposes only. Always consult a professional.",
         "ages": ['Newborn', '1-2 mo', '3-4 mo', '6 mo', '12 mo', '2 y.', '3 y.'],
         "age_data": {
@@ -125,14 +124,9 @@ t = {
             '3 y.': {'info': "Vision is developed. Reliable Lea tests can be done now."}
         },
         "red_flags": [
-            "Does not make eye contact",
-            "Squints or screws up eyes",
-            "Tilts head",
-            "Brings things very close",
-            "Gets tired quickly during visual tasks",
-            "Avoids visual tasks",
-            "Vision use differs from normal",
-            "White pupil (in flash photos)",
+            "Does not make eye contact", "Squints or screws up eyes", "Tilts head", "Brings things very close",
+            "Gets tired quickly during visual tasks", "Avoids visual tasks",
+            "Vision use differs from normal", "White pupil (in flash photos)",
             "Eye shaking (nystagmus)"
         ],
         "exp_texts": {
@@ -161,12 +155,12 @@ def load_img(fname):
 if valittu_näkymä == txt["view_opts"][3]: 
     up = st.file_uploader("Upload", type=["jpg","png","jpeg"])
     if up: img = Image.open(up)
-    else: st.info("Lataa kuva / Ladda upp bild / Upload image"); st.stop()
+    else: st.info(txt["upload_msg"]); st.stop()
 else:
     map_idx = txt["view_opts"].index(valittu_näkymä)
     f_list = ["aiti.jpg", "leikkihuone.jpg", "lea.jpg"]
     img = load_img(f_list[map_idx])
-    if img is None: st.error("Image file missing from GitHub."); st.stop()
+    if img is None: st.error("Image files missing."); st.stop()
 
 # --- INPUTIT ---
 ika_valittu = st.sidebar.select_slider(txt["age"], options=txt["ages"], value=txt["ages"][0])
@@ -195,10 +189,9 @@ proc = proc.filter(ImageFilter.GaussianBlur(radius=current_vals['blur']))
 proc = ImageEnhance.Color(proc).enhance(current_vals['sat'])
 proc = ImageEnhance.Contrast(proc).enhance(0.2 if is_contrast else current_vals['contrast'])
 
-# Taittovirhe-tunnistus kielen mukaan
-if any(kw in refr for kw in ["Myopia", "Närsynthet", "Likitaitteisuus", "Nearsighted"]):
+if any(kw in refr for kw in ["Myopia", "Närsynthet", "Nearsighted"]): 
     proc = proc.filter(ImageFilter.GaussianBlur(radius=4))
-elif any(kw in refr for kw in ["Hyperopia", "Översynthet", "Kaukotaitteisuus", "Farsighted"]):
+elif any(kw in refr for kw in ["Hyperopia", "Översynthet", "Farsighted"]): 
     proc = proc.filter(ImageFilter.GaussianBlur(radius=3))
 elif any(kw in refr for kw in ["Astigmatism", "Hajanaitteisuus"]):
     ast_img = proc.filter(ImageFilter.GaussianBlur(radius=2))
@@ -218,7 +211,7 @@ with c1:
     st.info(txt["age_data"][ika_valittu]["info"])
 
 with c2:
-    st.subheader("Normal Vision")
+    st.subheader(txt["normal_vision"])
     st.image(img, use_container_width=True)
 
 # --- INFORMAATIO-OSIO ---
@@ -233,19 +226,16 @@ with inf:
     if is_lazy: 
         st.write(f"**{txt['lazy']}**: {txt['exp_texts']['lazy']}")
         active_info = True
-    
     if refr != txt["refractive_opts"][0]:
-        key = "myopia" if any(kw in refr for kw in ["Myopia", "Närsynthet", "Likitaitteisuus", "Nearsighted"]) else \
-              "hyperopia" if any(kw in refr for kw in ["Hyperopia", "Översynthet", "Kaukotaitteisuus", "Farsighted"]) else "astig"
-        st.write(f"**{refr}**: {txt['exp_texts'][key]}")
+        k = "myopia" if any(kw in refr for kw in ["Myopia", "Närsynthet", "Nearsighted"]) else \
+            "hyperopia" if any(kw in refr for kw in ["Hyperopia", "Översynthet", "Farsighted"]) else "astig"
+        st.write(f"**{refr}**: {txt['exp_texts'][k]}")
         active_info = True
-        
     if is_contrast: 
         st.write(f"**{txt['contrast']}**: {txt['exp_texts']['contrast_txt']}")
         active_info = True
-    
     if not active_info:
-        st.write("Valitse häiriöitä sivupalkista nähdäksesi lisätietoa.")
+        st.write(txt["no_disturb_info"])
 
 with warn:
     st.subheader(txt["warning_title"])
